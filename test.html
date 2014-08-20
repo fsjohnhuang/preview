@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="x-UA-Compatible" content="Edge">
+		<meta http-equiv="ContentType" content="text/html;charset=utf-8">
+		<title>Preview by fsjohnhuang</title>
+		<style type="text/css">
+			#preview{
+				width: 100px;
+				height: 100px;
+			}
+		</style>
+	</head>
+	<body>
+		<input type="file" id="icon"/>
+		<div id="preview">
+		</div>
+		<script type="text/javascript">
+			var $ = function(id){
+				return document.getElementById(id.substring(1));
+			};
+		</script>
+		<script type="text/javascript" src="./preview.js"></script>
+		<script type="text/javascript">
+			var preview1 = new Preview($('#icon'), $('#preview'));
+		</script>
+	</body>
+</html>
