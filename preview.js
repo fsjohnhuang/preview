@@ -26,7 +26,7 @@
 		else{
 			fr = new FileReader();
 			fr.addEventListener('load', function(e){
-				var imgs = document.getElementsByClassName(imgCls), img;
+				var imgs = previewEl.getElementsByClassName(imgCls), img;
 				if (imgs === null || imgs.length === 0){
 					img = new Image();
 					img.className = imgCls;
