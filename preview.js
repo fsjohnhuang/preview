@@ -1,13 +1,12 @@
 /**
  * @author fsjohnuang
- * @version 0.1
+ * @version 0.2
  * @description 图片预览
- * @caution 在IE11下且文档模式小于10时，预览功能将失效。
- * 因为出于安全考虑，IE11的file元素的value值被替换c:\fakepath\文件名,因此在使用滤镜时由于无法获取真实路径导致图片加载失败。
  */
 ;(function(exports){
 	var _filter = ['progid',
-		'DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod="scale")'];
+		'DXImageTransform.Microsoft.AlphaImageLoader',
+		'(sizingMethod="scale")'];
 	var useFilter = !!(document.body.filters && document.body.filters.item);
 	var imgCls = 'data-preview-img';
 
@@ -21,7 +20,7 @@
 		var fr = null;
 		// IE5.5~9
 		if (useFilter){
-			previewEl.style.filter += ';' + _filter[0] + ':' + _filter[1];
+			previewEl.style.filter = _filter[0] + ':' + _filter[1] + _filter[2];
 		}
 		else{
 			fr = new FileReader();
@@ -41,11 +40,17 @@
 				img.src = e.target.result;
 			});
 		}
-		var evtPrefix = '';
-		(fileEl.addEventListener || (evtPrefix = 'on') && fileEl.attachEvent)(evtPrefix + 'change', function(e){
+		var evtPrefix = '', on = fileEl.addEventListener && 'addEventListener' || (evtPrefix = 'on') && 'attachEvent';
+		fileEl[on](evtPrefix + 'change', function(e){
 				e = e || window.event;
 				if (useFilter){
-					previewEl.filters.item(_filter[1]).src = e.target.value;
+					var src = e.target.value || '';
+					// 解决IE11下，文档模式小于10无法通过value、getAttribute和outerHTML获取input[type=file]的真实路径问题
+					if (src.search(/\w:\\fakepath/) === 0){
+						e.target.select();	
+						src = document.selection.createRangeCollection()[0].htmlText;
+					}
+					previewEl.filters.item(_filter[1]).src = src;
 				}
 				else{
 					fr.readAsDataURL(e.target.files[0]);
