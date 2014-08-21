@@ -1,6 +1,6 @@
 /**
  * @author fsjohnuang
- * @version 0.3
+ * @version 0.4
  * @description 图片预览
  */
 ;(function(exports){
