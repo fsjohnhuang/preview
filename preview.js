@@ -1,6 +1,6 @@
 /**
  * @author fsjohnuang
- * @version 0.2
+ * @version 0.3
  * @description 图片预览
  */
 ;(function(exports){
@@ -10,6 +10,22 @@
 	var useFilter = !!(document.body.filters && document.body.filters.item);
 	var imgCls = 'data-preview-img';
 
+	var _render = function(previewEl, dataURI){
+		var imgs = previewEl.getElementsByClassName(imgCls), img;
+		if (imgs === null || imgs.length === 0){
+			img = new Image();
+			img.className = imgCls;
+			img.style.width = previewEl.offsetWidth + 'px';
+			img.style.height = previewEl.offsetHeight + 'px';
+			previewEl.appendChild(img);
+		}
+		else{
+			img = imgs[0];
+		}
+
+		img.src = dataURI;
+	};
+
 	/*
 	 * @param {HTMLFileElement} fileEl 文件上传元素
 	 * @param {HTMLElement} previewEL 预览容器，建议使用div元素
@@ -17,28 +33,29 @@
 	exports.Preview = function(fileEl, previewEl){
 		if (!(this instanceof Preview)) return new Preview(fileEl, previewEl);
 
-		var fr = null;
+		var readAsDataURL = null;
 		// IE5.5~9
 		if (useFilter){
 			previewEl.style.filter = _filter[0] + ':' + _filter[1] + _filter[2];
 		}
 		else{
-			fr = new FileReader();
-			fr.addEventListener('load', function(e){
-				var imgs = previewEl.getElementsByClassName(imgCls), img;
-				if (imgs === null || imgs.length === 0){
-					img = new Image();
-					img.className = imgCls;
-					img.style.width = previewEl.offsetWidth + 'px';
-					img.style.height = previewEl.offsetHeight + 'px';
-					previewEl.appendChild(img);
+			// 修复ff3.0不支持FileReader的问题
+			var fr = null;
+			if (!!FileReader){
+				fr = new FileReader;
+				fr.addEventListener('load', function(e){
+					_render(previewEl, e.target.result);
+				});
+			}
+
+			readAsDataURL = function(file){
+				if (!!fr){
+					fr.readAsDataURL(file);
 				}
 				else{
-					img = imgs[0];
+					_render(previewEl, file.readAsDataURL());
 				}
-
-				img.src = e.target.result;
-			});
+			};
 		}
 		var evtPrefix = '', on = fileEl.addEventListener && 'addEventListener' || (evtPrefix = 'on') && 'attachEvent';
 		fileEl[on](evtPrefix + 'change', function(e){
@@ -53,7 +70,7 @@
 					previewEl.filters.item(_filter[1]).src = src;
 				}
 				else{
-					fr.readAsDataURL(e.target.files[0]);
+					readAsDataURL(e.target.files[0]);
 				}
 			});
 	};
