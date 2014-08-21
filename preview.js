@@ -26,13 +26,41 @@
 		img.src = dataURI;
 	};
 
+	var MIME_EXT_MAP = {
+		'jpeg': 'image/jpeg',
+		'jpg': 'image/jpg',
+		'gif': 'image/gif',
+		'png': 'image/png'
+	};
+
 	/*
 	 * @param {HTMLFileElement} fileEl 文件上传元素
 	 * @param {HTMLElement} previewEL 预览容器，建议使用div元素
 	 */
-	exports.Preview = function(fileEl, previewEl){
+	var Preview = function(fileEl, previewEl){
 		if (!(this instanceof Preview)) return new Preview(fileEl, previewEl);
 
+		var isExpectedMIME = (function(accept){
+			// 正则化
+			accept = accept.replace(/\*/g, function(m){
+				return '[^\\u002c]+'; // 使用逗号的unicode字符编码,以便后面已逗号,作为分隔符
+			});
+			var acceptMIMEs = accept.split(',');
+
+			/*
+			 * @param {DOMString | Array} mimes input[type=file]元素上传文件的MIME类型
+			 */ 
+			return function(mimes){
+				mimes = [].concat(mimes);
+				for (var i = 0, am; am = acceptMIMEs[i++];){
+					for (var j = 0, m; m = mimes[j++];){
+						if (RegExp(am).test(m)) return true;
+					}
+				}
+				return false;
+			};
+		}(fileEl.accept || 'image/*'));
+		
 		var readAsDataURL = null;
 		// IE5.5~9
 		if (useFilter){
@@ -49,6 +77,8 @@
 			}
 
 			readAsDataURL = function(file){
+				if (!isExpectedMIME(file.type)) return;
+
 				if (!!fr){
 					fr.readAsDataURL(file);
 				}
@@ -67,11 +97,16 @@
 						e.target.select();	
 						src = document.selection.createRangeCollection()[0].htmlText;
 					}
-					previewEl.filters.item(_filter[1]).src = src;
+					var ext = src.substring(src.lastIndexOf('.') + 1);
+					if (isExpectedMIME(MIME_EXT_MAP[ext])){
+						previewEl.filters.item(_filter[1]).src = src;
+					}
 				}
 				else{
 					readAsDataURL(e.target.files[0]);
 				}
 			});
 	};
+	
+	exports.Preview = Preview;
 }(window));
