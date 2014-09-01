@@ -1,8 +1,11 @@
-preview
+preview v0.5
 =======
 
 纯浏览器端的图片预览<br/>
 支持IE5.5~IE11、Chrome、FF、Safari和Opera<br/>
+
+**v.0.5**<br/>
+IE10+通过window.URL.createObjectURL替代FileReader，缩短Data URI Scheme长度从而提高性能。
 
 **v0.4**<br/>
 新增上传文件MIME类型筛选。默认值为`image/*`,通过input的accept属性值设置。<br/>

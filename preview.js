@@ -1,6 +1,6 @@
 /**
  * @author fsjohnuang
- * @version 0.4
+ * @version 0.5
  * @description 图片预览
  */
 ;(function(exports){
@@ -21,9 +21,29 @@
 		}
 		else{
 			img = imgs[0];
+			if (_objectURL.isSupport){
+				// v0.5 释放window.URL.createObjectURL生成的链接所独占的资源
+				_objectURL.revoke(img.src);
+			}
 		}
 
 		img.src = dataURI;
+	};
+
+	var _objectURL = {
+		URL: window.webkitURL ? 'webkitURL' : window.URL ? 'URL' : '',
+		fileURL: {}
+	};
+	_objectURL.isSupport = _objectURL.URL !== '';
+	_objectURL.create = function(blob){
+		var url = window[this.URL]['createObjectURL'](blob);
+		this.fileURL[url] = blob;
+
+		return url;
+	};
+	_objectURL.revoke = function(url){
+		var blob = this.fileURL[url];
+		window[this.URL]['revokeObjectURL'](blob);
 	};
 
 	var MIME_EXT_MAP = {
@@ -78,8 +98,12 @@
 
 			readAsDataURL = function(file){
 				if (!isExpectedMIME(file.type)) return;
-
-				if (!!fr){
+				
+				// v0.5 添加window.URL.createObjectURL提高性能
+				if (_objectURL.isSupport){
+					_render(previewEl, _objectURL.create(file));
+				}
+				else if (!!fr){
 					fr.readAsDataURL(file);
 				}
 				else{
