@@ -1,8 +1,11 @@
-preview v0.5
+preview v1.0
 =======
 
 纯浏览器端的图片预览<br/>
 支持IE5.5~IE11、Chrome、FF、Safari和Opera<br/>
+
+**v.1.0**<br/>
+全局重构
 
 **v.0.5**<br/>
 IE10+通过window.URL.createObjectURL替代FileReader，缩短Data URI Scheme长度从而提高性能。
