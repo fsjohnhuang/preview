@@ -1,6 +1,6 @@
 /**
  * @author fsjohnuang
- * @version 1.01
+ * @version 1.0.2
  * @description 图片预览
  */
 ;(function(exports){
@@ -26,7 +26,7 @@
 
 	/**
 	 特征检测
-	 v1.01 修复document.body为生成时，特征检测报错的bug
+	 v1.0.1 修复document.body为生成时，特征检测报错的bug
 	**/
 	var useFilter = !!(document.documentElement.filters && document.documentElement.filters.item);
 
@@ -34,7 +34,7 @@
 	 兼容性处理
 	**/
 	var on, off;
-	//v1.01 修复document.body为生成时，特征检测报错的bug
+	//v1.0.1 修复document.body为生成时，特征检测报错的bug
 	document.documentElement.addEventListener &&
 		(on = function(el, evt, fn){
 			el.addEventListener(evt, fn);
@@ -117,22 +117,26 @@
 	 */
 	render[2] = function(src, previewEl){
 		var imgs = previewEl.getElementsByClassName(imgCls), img;
-		if (imgs === null || imgs.length === 0){
-			img = new Image();
-			img.className = imgCls;
-			img.style.width = previewEl.offsetWidth + 'px';
-			img.style.height = previewEl.offsetHeight + 'px';
-			previewEl.appendChild(img);
-		}
-		else{
-			img = imgs[0];
-			if (!!URL){
+		if (!!src){
+			if (img = imgs[0]){
 				// 释放window.URL.createObjectURL生成的链接所独占的资源
-				URL.revokeObjectURL(URL.popBlob(img.src));
+				if (!!URL)
+					URL.revokeObjectURL(URL.popBlob(img.src));
 			}
+			else{
+				img = new Image();
+				img.className = imgCls;
+				img.style.width = previewEl.offsetWidth + 'px';
+				img.style.height = previewEl.offsetHeight + 'px';
+				previewEl.appendChild(img);
+			}
+			img.src = src;
 		}
-
-		img.src = src;
+		else if(img = imgs[0]){
+			if (!!URL)
+				URL.revokeObjectURL(URL.popBlob(img.src));
+			img.remove();
+		}
 	};
 	/** IE10以下显示预览图 
 	 * @param {DOMString} src 图片地址
@@ -205,5 +209,7 @@
 				args.push(isExpectedMIME);
 			exec.apply(this, args);
 		});
+
+		
 	};
 }(window));
