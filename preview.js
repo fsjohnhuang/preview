@@ -1,6 +1,6 @@
 /**
  * @author fsjohnuang
- * @version 1.0
+ * @version 1.01
  * @description 图片预览
  */
 ;(function(exports){
@@ -26,14 +26,16 @@
 
 	/**
 	 特征检测
+	 v1.01 修复document.body为生成时，特征检测报错的bug
 	**/
-	var useFilter = !!(document.body.filters && document.body.filters.item);
+	var useFilter = !!(document.documentElement.filters && document.documentElement.filters.item);
 
 	/**
 	 兼容性处理
 	**/
 	var on, off;
-	document.body.addEventListener &&
+	//v1.01 修复document.body为生成时，特征检测报错的bug
+	document.documentElement.addEventListener &&
 		(on = function(el, evt, fn){
 			el.addEventListener(evt, fn);
 		},
@@ -169,7 +171,7 @@
 	 * @param {HTMLElement} previewEl 预览区域元素，建议使用div
 	 */
 	var pv = exports.Preview = function(fileEl, previewEl){
-		if (!(this instanceof pv) return new pv(fileEl, previewEl);
+		if (!(this instanceof pv)) return new pv(fileEl, previewEl);
 
 		// IE10以下版本浏览器进行文件后缀校验
 		var isExpectedMIME = useFilter && (previewEl.style.filter = filter[0] + ':' + filter[1] + filter[2] 
