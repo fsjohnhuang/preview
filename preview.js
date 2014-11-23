@@ -1,6 +1,6 @@
 /**
  * @author fsjohnuang
- * @version 1.0.2
+ * @version 1.1.0
  * @description 图片预览
  */
 ;(function(exports){
@@ -9,14 +9,14 @@
 	utils.trim = function(str){
 		return /^\s*(\S*)\s*$/.exec(str)[1];
 	};
+	var rFile = /input\b.*\btype\s*=\s*("?|'?)file\1/i;
 
 	/**
 	 配置项
 	**/
-	var imgCls = 'data-preview-img';
-	var filter = ['progid',
-		'DXImageTransform.Microsoft.AlphaImageLoader',
-		'(sizingMethod="scale")'];
+	var imgCls = 'data-preview-img',
+		FILTER_NAME= 'DXImageTransform.Microsoft.AlphaImageLoader',
+		FILTER= ' progid:' + FILTER_NAME + '(sizingMethod="scale")';
 	var MIME_EXT_MAP = {
 		'jpeg': 'image/jpeg',
 		'jpg': 'image/jpg',
@@ -53,20 +53,12 @@
 	var URL = (function(URL){
 		if (!URL) return;
 
-		var cache = {};
 		return {
 			createObjectURL: function(blob){
-				var url = URL.createObjectURL(blob);
-				cache[url] = blob;
-				return url;
+				return URL.createObjectURL(blob);
 			},	
-			revokeObjectURL: function(blob){
-				URL.revokeObjectURL(blob);
-			},
-			popBlob: function(url){
-				var blob = cache[url];
-				delete cache[url];
-				return blob;
+			revokeObjectURL: function(url){
+				URL.revokeObjectURL(url);
 			}
 		};
 	}(window.webkitURL || window.URL));
@@ -79,6 +71,9 @@
 	 * @param {Function} cb({DOMString} dataURIScheme) 回调函数
 	 */
 	var readAsDataURL = function(file, cb/*({DOMString} dataURIScheme)*/){
+		// 空文件则返回空字符串
+		if (!file) return cb('');
+
 		if (!!URL){
 			// 使用window.URL.createObjectURL提高性能
 			cb(URL.createObjectURL(file));
@@ -108,22 +103,36 @@
 		}
 		return src;
 	};
+	/** 清理预览图的渲染
+	 * @param {HTMLElement} previewEl 预览图区域元素
+	 * @param {Boolean} [isRemove=false] 是否将预览图IMG元素从DOM树移除
+	 */
+	var clearRender = function(previewEl, isRemove){
+		var img = previewEl.getElementsByClassName(imgCls)[0];
+		if (!img) return null;
+
+		// 释放window.URL.createObjectURL生成的链接所独占的资源
+		URL && URL.revokeObjectURL(img.src);
+		if (isRemove){
+			// IE10+只有removeNode没有remove方法
+			img[img.remove && 'remove' || 'removeNode'].call(img);
+			img = null;
+		}
+
+		return img;
+	};
 	var render = function(){
 		render[arguments.length].apply(this, arguments);
 	};
 	/** 现代浏览器显示预览图 
+	 * v1.0.2修复src为undefined或null时图片显示出错的bug
 	 * @param {DOMString} src 图片地址
 	 * @param {HTMLElement} previewEl 预览图元素
 	 */
 	render[2] = function(src, previewEl){
-		var imgs = previewEl.getElementsByClassName(imgCls), img;
-		if (!!src){
-			if (img = imgs[0]){
-				// 释放window.URL.createObjectURL生成的链接所独占的资源
-				if (!!URL)
-					URL.revokeObjectURL(URL.popBlob(img.src));
-			}
-			else{
+		var img = clearRender(previewEl, !src);
+		if (src){ 
+			if (!img){
 				img = new Image();
 				img.className = imgCls;
 				img.style.width = previewEl.offsetWidth + 'px';
@@ -131,11 +140,6 @@
 				previewEl.appendChild(img);
 			}
 			img.src = src;
-		}
-		else if(img = imgs[0]){
-			if (!!URL)
-				URL.revokeObjectURL(URL.popBlob(img.src));
-			img.remove();
 		}
 	};
 	/** IE10以下显示预览图 
@@ -146,7 +150,7 @@
 	render[3] = function(src, previewEl, isExpectedMIME){
 		var ext = src.substring(src.lastIndexOf('.') + 1);
 		if (isExpectedMIME(MIME_EXT_MAP[ext]))
-			previewEl.filters.item(filter[1]).src = src;
+			previewEl.filters.item(FILTER_NAME).src = src;
 	}
 	var exec= function(){
 		exec[arguments.length].apply(this, arguments);
@@ -169,16 +173,60 @@
 		var url = readPath(fileEl);	
 		render(url, previewEl, isExpectedMIME);
 	};
+	/** 重置预览图渲染
+	 * @param {HTMLElement} 预览图区域元素
+	 */
+	var resetRender = function(previewEl){
+		if (useFilter){
+			// 滤镜AlphaImageLoader的src为无效路径时会跑出Error
+			// 因此需要重置滤镜
+			previewEl.style.filter = previewEl.style.filter.replace(FILTER,'');
+			setTimeout(function(){
+				previewEl.style.filter += FILTER;
+			}, 0);
+		}
+		else{
+			clearRender(previewEl, true);
+		}
+	};
+	var frm4Reset;
+	/** 重置input[type=file]元素的value值
+	 * @param {HTMLFileElement} 文件上传元素
+	 */
+	var resetVal = function(fileEl){
+		if (document.documentMode && document.documentMode < 11){
+			// IE10及以下版本无法通过js修改value
+			// 需要通过附加到非渲染的form元素实现重置
+			var p = fileEl.parentNode, n = fileEl.nextSibling;
+			frm4Reset = frm4Reset || document.createElement('form');
+			frm4Reset.appendChild(fileEl);
+			frm4Reset.reset();
+			p.insertBefore(fileEl, n);
+		}
+		else{
+			fileEl.value = '';
+		}
+	};
 
 	/** 构造图片预览组件
+	 * 参数的位置可互换
 	 * @param {HTMLFileElement} fileEl 文件上传元素
 	 * @param {HTMLElement} previewEl 预览区域元素，建议使用div
 	 */
-	var pv = exports.Preview = function(fileEl, previewEl){
-		if (!(this instanceof pv)) return new pv(fileEl, previewEl);
+	var pv = exports.Preview = function(arg1, arg2){
+		if (2 !== arguments.length) throw Error("Failed to execute 'Preview': 2 argument required, but only " + arguments.length + " present");
+		if (!(this instanceof pv)) return new pv(arg1, arg2);
+
+		var fileEl, previewEl;
+		for (var i = 0, arg; arg = arguments[i++];){
+			if (rFile.test(arg.outerHTML))
+				fileEl = this.fileEl = arg;
+			else
+				previewEl = this.previewEl = arg;
+		}
 
 		// IE10以下版本浏览器进行文件后缀校验
-		var isExpectedMIME = useFilter && (previewEl.style.filter = filter[0] + ':' + filter[1] + filter[2] 
+		var isExpectedMIME = useFilter && (previewEl.style.filter += FILTER
 			, (function(accept){
 				// 正则化, 将形如image/*,image/jpg正则化为image/[^\\u002c]+,image/jpg
 				accept = accept.replace(/\*/g, function(m){
@@ -209,7 +257,14 @@
 				args.push(isExpectedMIME);
 			exec.apply(this, args);
 		});
+	};
 
-		
+	/** 重置图片预览组件
+	 */
+	pv.prototype.reset = function(){
+		resetVal(this.fileEl);
+		// IE11下修改fileEl.value后会触发change事件，因此不用重置渲染
+		if (!document.documentMode || document.documentMode < 11)
+			resetRender(this.previewEl);
 	};
 }(window));

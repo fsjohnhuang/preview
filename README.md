@@ -1,8 +1,12 @@
-preview v1.0
+preview v1.1.0
 =======
 
-纯浏览器端的图片预览<br/>
+纯浏览器端的图片预览组件<br/>
 支持IE5.5~IE11、Chrome、FF、Safari和Opera<br/>
+
+**v1.1.0**<br/>
+1. 图片预览实例添加`reset()`方法，用于重置组件；
+2. `Preview构造函数`入参由原来的顺序设置fileEl,previewEl改为无序设置。
 
 **v.1.0**<br/>
 全局重构
