@@ -1,4 +1,4 @@
-preview v1.1.0
+preview v1.2.0
 =======
 
 纯浏览器端的图片预览组件<br/>
@@ -27,7 +27,7 @@ preview v1.1.0
 </script>
 ````
 
-**v1.2.0(开发中)**<br/>
+**v1.2.0**<br/>
 1. Preview构造函数添加opts配置入参，具体配置项如下：<br/>
 `onlegal`,当路径后缀与file的accept属性值匹配时触发，返回true(默认值)时将预览图片，false则预览图片。<br/>
 `onillegal`,当路径后缀与file的accept属性值不匹配时触发，返回true时将预览图片，false(默认值)则预览图片。<br/>

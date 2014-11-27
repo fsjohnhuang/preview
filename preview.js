@@ -1,6 +1,6 @@
 /**
  * @author fsjohnuang
- * @version 1.1.0
+ * @version 1.2.0
  * @description 纯前端图片预览组件
  */
 ;(function(exports){
@@ -9,7 +9,25 @@
 	utils.trim = function(str){
 		return /^\s*(\S*)\s*$/.exec(str)[1];
 	};
-	var rFile = /input\b.*\btype\s*=\s*("?|'?)file\1/i;
+	utils.preset = function(fn){
+		var presetArgs = [].slice.call(arguments, 1);
+		return function(){
+			fn.apply(null, presetArgs.concat([].slice.call(arguments)));
+		};
+	};
+	utils.extend = function(){
+		var ret = {};
+		for (var i = 0, len = arguments.length, arg; i < len; ++i){
+			if (arg = arguments[i]){
+				for (var p in arg){
+					if (!ret.hasOwnProperty(p)){
+						ret[p] = arg[p];
+					}
+				}
+			}
+		}
+		return ret;
+	};
 
 	/**
 	 配置项
@@ -38,21 +56,24 @@
 	**/
 	var on, off;
 	//v1.0.1 修复document.body未生成时，特征检测报错的bug
-	document.documentElement.addEventListener &&
-		(on = function(el, evt, fn){
+	if (document.documentElement.addEventListener){
+		on = function(el, evt, fn){
 			el.addEventListener(evt, fn);
-		},
+		};
 		off = function(el, evt, fn){
 			el.removeEventListener.apply(el, Array.prototype.slice.call(arguments,1));
-		}) || 
-		(on = function(el, evt, fn){
+		};
+	}
+	else{
+		on = function(el, evt, fn){
 			el.attachEvent('on' + evt, fn);
-		},
+		};
 		off = function(el, evt, fn){
 			var args = Array.prototype.slice.call(arguments,1);
 			args[0] = 'on' + args[0];
 			el.detachEvent.apply(el, args);
-		});
+		};
+	}
 	var URL = (function(URL){
 		if (!URL) return;
 
@@ -124,60 +145,80 @@
 
 		return img;
 	};
-	var render = function(){
-		render[arguments.length].apply(this, arguments);
-	};
-	/** 现代浏览器显示预览图 
-	 * v1.0.2修复src为undefined或null时图片显示出错的bug
-	 * @param {DOMString} src 图片地址
-	 * @param {HTMLElement} previewEl 预览图元素
+	/** 检查文件后缀是否与file的accept属性值匹配，并触发事件
+	 * @param {PlainObject} _ Preview实例内置配置项
+	 * @param {DOCString} src 文件路径
+	 * @param {Function} isExpectedMIME 检查文件后缀的函数
+	 * @param {Boolean} 是否渲染预览图
 	 */
-	render[2] = function(src, previewEl){
-		var img = clearRender(previewEl, !src);
-		if (src){ 
-			if (!img){
-				img = new Image();
-				img.className = imgCls;
-				img.style.width = previewEl.offsetWidth + 'px';
-				img.style.height = previewEl.offsetHeight + 'px';
-				previewEl.appendChild(img);
-			}
-			img.src = src;
-		}
-	};
-	/** IE10以下显示预览图 
-	 * @param {DOMString} src 图片地址
-	 * @param {HTMLElement} previewEl 预览图元素
-	 * @param {Function} isExpectedMIME 文件后缀检测函数
-	 */
-	render[3] = function(src, previewEl, isExpectedMIME){
+	var isRender = function(_, src, isExpectedMIME){
 		var ext = '';
 		var lastFullStopIndex = src.lastIndexOf('.');
 		if (lastFullStopIndex > 0)
 			ext = src.substring(lastFullStopIndex + 1);
-		if (isExpectedMIME(MIME_EXT_MAP[ext]))
+		var ret = _.opts[isExpectedMIME(MIME_EXT_MAP[ext])?'onlegal':'onillegal']
+			.call(_.self, src, ext, _.accept);
+		return ret;
+	};
+	var render = function(){
+		render[useFilter ? 'legacy' : 'modern'].apply(null, arguments);
+	};
+	/** 现代浏览器显示预览图 
+	 * v1.0.2修复src为undefined或null时图片显示出错的bug
+	 * @param {PlainObject} _ Preview实例内置配置项
+	 * @param {DOMString} src 图片地址
+	 * @param {HTMLElement} previewEl 预览图元素
+	 * @param {Function} isExpectedMIME 文件后缀检测函数
+	 */
+	render['modern'] = function(_, src, previewEl, isExpectedMIME){
+		var img = clearRender(previewEl, !src);
+		if (src){ 
+			if (isRender(_, _.fileEl.files[0].name, isExpectedMIME)){
+				if (!img){
+					img = new Image();
+					img.className = imgCls;
+					img.style.width = previewEl.offsetWidth + 'px';
+					img.style.height = previewEl.offsetHeight + 'px';
+					previewEl.appendChild(img);
+				}
+				img.src = src;
+			}
+		}
+	};
+	/** IE10以下显示预览图 
+	 * @param {PlainObject} _ Preview实例内置配置项
+	 * @param {DOMString} src 图片地址
+	 * @param {HTMLElement} previewEl 预览图元素
+	 * @param {Function} isExpectedMIME 文件后缀检测函数
+	 */
+	render['legacy'] = function(_, src, previewEl, isExpectedMIME){
+		if (isRender(_, src, isExpectedMIME))
 			previewEl.filters.item(FILTER_NAME).src = src;
 	}
 	var exec= function(){
-		exec[arguments.length].apply(this, arguments);
+		exec[useFilter ? 'legacy' : 'modern'].apply(null, arguments);
 	};
 	/** 现代浏览器执行预览操作 
-	 * @param {HTMLFileElement} fileEl 文件上传元素
-	 * @param {HTMLElement} previewEl 预览图元素
-	 */
-	exec[2] = function(fileEl, previewEl){
-		readAsDataURL(fileEl.files[0], function(url){
-			render(url, previewEl);	
-		});
-	};
-	/** IE10以下执行预览操作 
+	 * @param {PlainObject} _ Preview实例内置配置项
 	 * @param {HTMLFileElement} fileEl 文件上传元素
 	 * @param {HTMLElement} previewEl 预览图元素
 	 * @param {Function} isExpectedMIME 文件后缀检测函数
 	 */
-	exec[3] = function(fileEl, previewEl, isExpectedMIME){
+	exec['modern'] = function(_, fileEl, previewEl, isExpectedMIME){
+		readAsDataURL(fileEl.files[0],
+			utils.preset(function(_, url){
+				render(_, url, previewEl, isExpectedMIME);	
+			}, _));
+	};
+	/** IE10以下执行预览操作 
+	 * @param {PlainObject} _ Preview实例内置配置项
+	 * @param {HTMLFileElement} fileEl 文件上传元素
+	 * @param {HTMLElement} previewEl 预览图元素
+	 * @param {Function} isExpectedMIME 文件后缀检测函数
+	 */
+	exec['legacy'] = function(_, fileEl, previewEl, isExpectedMIME){
 		var url = readPath(fileEl);	
-		render(url, previewEl, isExpectedMIME);
+		render(_, url, previewEl, isExpectedMIME);
 	};
 	/** 重置预览图渲染
 	 * @param {HTMLElement} 预览图区域元素
@@ -218,22 +259,44 @@
 	 * 参数的位置可互换
 	 * @param {HTMLFileElement} fileEl 文件上传元素
 	 * @param {HTMLElement} previewEl 预览区域元素，建议使用div
+	 * @param {PlainObject} opts 配置项
 	 */
-	var pv = exports.Preview = function(arg1, arg2){
-		if (2 !== arguments.length) throw Error("Failed to execute 'Preview': 2 argument required, but only " + arguments.length + " present");
+	var pv = exports.Preview = function(arg1, arg2, opts){
+		if (2 > arguments.length) throw Error("Failed to execute 'Preview': 2 over arguments required, but only " + arguments.length + " present");
 		if (!(this instanceof pv)) return new pv(arg1, arg2);
 
-		var fileEl, previewEl;
-		for (var i = 0, arg; arg = arguments[i++];){
-			if (rFile.test(arg.outerHTML))
-				fileEl = this.fileEl = arg;
+		// 私有属性, 建议使用者不要随便修改
+		var _ = this._ = {};
+		_.self = this;
+		for (var i = 0, arg; i < 2 && (arg = arguments[i++]);){
+			if (arg.nodeName === 'INPUT' && arg.type === 'file')
+				_.fileEl = arg;
 			else
-				previewEl = this.previewEl = arg;
+				_.previewEl = arg;
+		}
+		if (!_.fileEl) throw Error("Failed to execute 'Preview': HTMLInputElement[type=file] required, but there is no one present");
+
+		_.opts = utils.extend(opts, pv.defaults);
+		// 将onlegal和onillegal转为函数
+		var origLegal, origIllegal;
+		if (typeof _.opts.onlegal !== 'function'){
+			origLegal = _.opts.onlegal;
+			_.opts.onlegal = function(){
+				return origLegal;
+			};
+		}
+		if (typeof _.opts.onillegal !== 'function'){
+			origIllegal = _.opts.onillegal;
+			_.opts.onillegal = function(){
+				return origIllegal;
+			};
 		}
 
-		// IE10以下版本浏览器进行文件后缀校验
-		var isExpectedMIME = useFilter && (previewEl.style.filter += FILTER
-			, (function(accept){
+		if (useFilter)
+			_.previewEl.style.filter += FILTER;
+
+		// v1.2.0文件后缀校验函数
+		var isExpectedMIME = (function(accept){
 				// 正则化, 将形如image/*,image/jpg正则化为image/[^\\u002c]+,image/jpg
 				accept = accept.replace(/\*/g, function(m){
 					return '[^\\u002c]+'; // 使用逗号的unicode字符编码,以便后面以逗号,作为分隔符
@@ -255,21 +318,26 @@
 					}
 					return false;
 				};
-			}(fileEl.accept || 'image/*')));
+			}(_.accept = _.fileEl.accept || 'image/*'));
 
-		on(fileEl, 'change', function(){
-			var args = [fileEl, previewEl];
-			if (isExpectedMIME)
-				args.push(isExpectedMIME);
-			exec.apply(this, args);
-		});
+		on(_.fileEl, 'change', function(){
+				exec(_, _.fileEl, _.previewEl, isExpectedMIME);
+			});
 	};
 
 	/** 重置图片预览组件
 	 */
 	pv.prototype.reset = function(){
-		resetVal(this.fileEl);
+		var _ = this._;
+		resetVal(_.fileEl);
 		// IE11修改fileEl.value后会触发change事件，因此不用重置渲染
-		isIE11 || resetRender(this.previewEl);
+		isIE11 || resetRender(_.previewEl);
+	};
+
+	/** 默认配置
+	 */
+	pv.defaults = {
+		onlegal: true,
+		onillegal: false
 	};
 }(window));
