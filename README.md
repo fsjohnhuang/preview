@@ -4,8 +4,24 @@ preview v1.1.0
 纯浏览器端的图片预览组件<br/>
 支持IE5.5~IE11、Chrome、FF、Safari和Opera<br/>
 
+**Usage**<br/>
+````
+<input type="file" id="icon1" accept="image/jpeg"/>&nbsp;<button onclick="pv1.reset()">重置</button>
+<div class="preview" id="pv1"></div>
+<input type="file" id="icon2" accept="image/jpeg"/>&nbsp;<button onclick="pv2.reset()">重置</button>
+<div class="preview" id="pv2"></div>
+<script type="text/javascript" src="./preview.js"></script>
+<script type="text/javascript">
+  var get = function(id){
+  	return document.getElementById(id);
+  };
+  var pv1 = new Preview(get('icon1'), get('pv1'));
+  var pv2 = Preview(get('pv2'), get('icon2'));
+</script>
+````
+
 **v1.1.0**<br/>
-1. 图片预览实例添加`reset()`方法，用于重置组件；
+1. 图片预览实例添加`reset()`方法，用于重置组件；<br/>
 2. `Preview构造函数`入参由原来的顺序设置fileEl,previewEl改为无序设置。
 
 **v.1.0**<br/>

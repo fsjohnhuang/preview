@@ -5,15 +5,18 @@
 		<meta http-equiv="ContentType" content="text/html;charset=utf-8">
 		<title>Preview by fsjohnhuang</title>
 		<style type="text/css">
-			#preview{
+			.preview{
 				width: 100px;
 				height: 100px;
 			}
 		</style>
 	</head>
 	<body>
-		<input type="file" id="icon" accept="image/*,image/png"/>
-		<div id="preview">
+		<input type="file" id="icon1" accept="image/x-png"/>&nbsp;<button onclick="pv1.reset()">重置</button>
+		<div class="preview" id="pv1">
+		</div>
+		<input type="file" id="icon2" accept="image/jpeg"/>&nbsp;<button onclick="pv2.reset()">重置</button>
+		<div class="preview" id="pv2">
 		</div>
 		<script type="text/javascript">
 			var $ = function(id){
@@ -22,7 +25,8 @@
 		</script>
 		<script type="text/javascript" src="./preview.js"></script>
 		<script type="text/javascript">
-			var preview1 = new Preview($('#icon'), $('#preview'));
+			var pv1 = new Preview($('#icon1'), $('#pv1'));
+			var pv2 = Preview($('#pv2'), $('#icon2'));
 		</script>
 	</body>
 </html>

@@ -1,7 +1,7 @@
 /**
  * @author fsjohnuang
  * @version 1.1.0
- * @description 图片预览
+ * @description 纯前端图片预览组件
  */
 ;(function(exports){
 	// 工具
@@ -18,23 +18,26 @@
 		FILTER_NAME= 'DXImageTransform.Microsoft.AlphaImageLoader',
 		FILTER= ' progid:' + FILTER_NAME + '(sizingMethod="scale")';
 	var MIME_EXT_MAP = {
-		'jpeg': 'image/jpeg',
-		'jpg': 'image/jpg',
-		'gif': 'image/gif',
-		'png': 'image/png'
+		'jpeg': ['image/jpeg'],
+		'jpg': ['image/jpeg'],
+		'gif': ['image/gif'],
+		'png': ['image/png', 'image/x-png'],
+		'tiff': ['image/tiff'],
+		'bmp': ['image/x-ms-bmp', 'image/bmp']
 	};
 
 	/**
 	 特征检测
-	 v1.0.1 修复document.body为生成时，特征检测报错的bug
+	 v1.0.1 修复document.body未生成时，特征检测报错的bug
 	**/
 	var useFilter = !!(document.documentElement.filters && document.documentElement.filters.item);
+	var isIE11 = document.documentMode === 11;
 
 	/**
 	 兼容性处理
 	**/
 	var on, off;
-	//v1.0.1 修复document.body为生成时，特征检测报错的bug
+	//v1.0.1 修复document.body未生成时，特征检测报错的bug
 	document.documentElement.addEventListener &&
 		(on = function(el, evt, fn){
 			el.addEventListener(evt, fn);
@@ -148,7 +151,10 @@
 	 * @param {Function} isExpectedMIME 文件后缀检测函数
 	 */
 	render[3] = function(src, previewEl, isExpectedMIME){
-		var ext = src.substring(src.lastIndexOf('.') + 1);
+		var ext = '';
+		var lastFullStopIndex = src.lastIndexOf('.');
+		if (lastFullStopIndex > 0)
+			ext = src.substring(lastFullStopIndex + 1);
 		if (isExpectedMIME(MIME_EXT_MAP[ext]))
 			previewEl.filters.item(FILTER_NAME).src = src;
 	}
@@ -178,7 +184,7 @@
 	 */
 	var resetRender = function(previewEl){
 		if (useFilter){
-			// 滤镜AlphaImageLoader的src为无效路径时会跑出Error
+			// 滤镜AlphaImageLoader的src为无效路径时会抛出Error
 			// 因此需要重置滤镜
 			previewEl.style.filter = previewEl.style.filter.replace(FILTER,'');
 			setTimeout(function(){
@@ -263,8 +269,7 @@
 	 */
 	pv.prototype.reset = function(){
 		resetVal(this.fileEl);
-		// IE11下修改fileEl.value后会触发change事件，因此不用重置渲染
-		if (!document.documentMode || document.documentMode < 11)
-			resetRender(this.previewEl);
+		// IE11修改fileEl.value后会触发change事件，因此不用重置渲染
+		isIE11 || resetRender(this.previewEl);
 	};
 }(window));
