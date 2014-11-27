@@ -19,6 +19,10 @@ preview v1.2.0
   Preview.defaults.onillegal = true;
   var pv1 = new Preview(get('icon1'), get('pv1'), {
   	onlegal: function(path, ext, accept){
+      alert(pv1 === this);
+      alert('文件路径:' + path);
+      alert('文件后缀:' + ext);
+      alert('期待的MIME类型:' + accept);
   		return true;
   	},
   	onillegal: false 
