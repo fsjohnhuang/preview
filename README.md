@@ -15,10 +15,23 @@ preview v1.1.0
   var get = function(id){
   	return document.getElementById(id);
   };
-  var pv1 = new Preview(get('icon1'), get('pv1'));
+  Preview.defaults.onlegal = false;
+  Preview.defaults.onillegal = true;
+  var pv1 = new Preview(get('icon1'), get('pv1'), {
+  	onlegal: function(path, ext, accept){
+  		return true;
+  	},
+  	onillegal: false 
+  });
   var pv2 = Preview(get('pv2'), get('icon2'));
 </script>
 ````
+
+**v1.2.0(开发中)**<br/>
+1. Preview构造函数添加opts配置入参，具体配置项如下：<br/>
+`onlegal`,当路径后缀与file的accept属性值匹配时触发，返回true(默认值)时将预览图片，false则预览图片。<br/>
+`onillegal`,当路径后缀与file的accept属性值不匹配时触发，返回true时将预览图片，false(默认值)则预览图片。<br/>
+2. 添加`Preview.defaults.onlegal=true`和`Preview.defaults.onillegal=false`默认配置项。<br/>
 
 **v1.1.0**<br/>
 1. 图片预览实例添加`reset()`方法，用于重置组件；<br/>

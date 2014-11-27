@@ -25,8 +25,23 @@
 		</script>
 		<script type="text/javascript" src="./preview.js"></script>
 		<script type="text/javascript">
-			var pv1 = new Preview($('#icon1'), $('#pv1'));
-			var pv2 = Preview($('#pv2'), $('#icon2'));
+	  		var get = function(id){
+			  	return document.getElementById(id);
+		    };
+		    Preview.defaults.onlegal = false;
+		    Preview.defaults.onillegal = true;
+		    var pv1 = new Preview(get('icon1'), get('pv1'), {
+		 	  	onlegal: function(path, ext, accept){
+		 	  		alert(this === pv1);
+		 	  		alert('path:' + path);
+		 	  		alert('extension:' + ext);
+		 	  		alert('accept:' + accept);
+
+			  		return true;
+			  	},
+			  	onillegal: false 
+		    });
+		    var pv2 = Preview(get('pv2'), get('icon2'));
 		</script>
 	</body>
 </html>
