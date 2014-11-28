@@ -1,4 +1,4 @@
-preview v1.2.0
+preview v1.3.0
 =======
 
 纯浏览器端的图片预览组件<br/>
@@ -10,6 +10,7 @@ preview v1.2.0
 <div class="preview" id="pv1"></div>
 <input type="file" id="icon2" accept="image/jpeg"/>&nbsp;<button onclick="pv2.reset()">重置</button>
 <div class="preview" id="pv2"></div>
+<input type="file" id="icon3" accept="image/jpeg"/>&nbsp;<button onclick="pv3.reset()">重置</button>
 <script type="text/javascript" src="./preview.js"></script>
 <script type="text/javascript">
   var get = function(id){
@@ -28,8 +29,24 @@ preview v1.2.0
   	onillegal: false 
   });
   var pv2 = Preview(get('pv2'), get('icon2'));
+
+  /**
+   * {Array} imgDatas [{el:预览图div元素, path:文件路径, ext: 后缀}*]
+   */
+  var pv3 = Preview(get('icon3'), function(imgDatas, accept){
+    for (var i = 0, imgData; imgData = imgDatas[i++];){
+      imgData.el.style.width = imgData.el.style.height = '200px';
+      document.body.appendChild(imgData.el);
+    }
+  }, {onlegal: true, onillegal: false, onreset: function(origPath){
+    alert(origPath);
+  }});
 </script>
 ````
+**v1.3.0(developing)**<br/>
+新增功能：<br/>
+1. 新增回调函数代替previewEl，从而让使用者自定义预览图的输出处理；<br/>
+2. 对于支持H5的浏览器，且使用回调函数代替previewEl时，支持一次生成多副预览图。<br/>
 
 **v1.2.0**<br/>
 1. Preview构造函数添加opts配置入参，具体配置项如下：<br/>
