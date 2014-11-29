@@ -1,38 +1,16 @@
 /**
  * @author fsjohnuang
- * @version 1.2.0
+ * @version 1.2.1
  * @description 纯前端图片预览组件
  */
-;(function(exports){
-	// 工具
-	var utils = {};
-	utils.trim = function(str){
-		return /^\s*(\S*)\s*$/.exec(str)[1];
-	};
-	utils.preset = function(fn){
-		var presetArgs = [].slice.call(arguments, 1);
-		return function(){
-			fn.apply(null, presetArgs.concat([].slice.call(arguments)));
-		};
-	};
-	utils.extend = function(){
-		var ret = {};
-		for (var i = 0, len = arguments.length, arg; i < len; ++i){
-			if (arg = arguments[i]){
-				for (var p in arg){
-					if (!ret.hasOwnProperty(p)){
-						ret[p] = arg[p];
-					}
-				}
-			}
-		}
-		return ret;
-	};
+;(function(exports, utils){
+	var rUrl = /^url\(([^)(]+)\)$/i;
+	var tImg = '<div class="{imgCls}" style="display:inline-block;background-image:url({url});background-size:{width}px {height}px;width:{width}px;height:{height}px;"></div>';
 
 	/**
 	 配置项
 	**/
-	var imgCls = 'data-preview-img',
+	var imgCls = 'imgCls' + (+new Date()),
 		FILTER_NAME= 'DXImageTransform.Microsoft.AlphaImageLoader',
 		FILTER= ' progid:' + FILTER_NAME + '(sizingMethod="scale")';
 	var MIME_EXT_MAP = {
@@ -136,7 +114,8 @@
 		if (!img) return null;
 
 		// 释放window.URL.createObjectURL生成的链接所独占的资源
-		URL && URL.revokeObjectURL(img.src);
+		var src;
+		URL && (src = rUrl.exec(img.style.backgroundImage)[1]) && URL.revokeObjectURL(src);
 		if (isRemove){
 			// IE10+只有removeNode没有remove方法
 			img[img.remove && 'remove' || 'removeNode'].call(img);
@@ -171,17 +150,22 @@
 	 * @param {Function} isExpectedMIME 文件后缀检测函数
 	 */
 	render['modern'] = function(_, src, previewEl, isExpectedMIME){
-		var img = clearRender(previewEl, !src);
-		if (src){ 
+		// v1.2.1 以div+background样式属性替代img元素
+		var img = clearRender(previewEl, false);
+		if (src){
 			if (isRender(_, _.fileEl.files[0].name, isExpectedMIME)){
-				if (!img){
-					img = new Image();
-					img.className = imgCls;
-					img.style.width = previewEl.offsetWidth + 'px';
-					img.style.height = previewEl.offsetHeight + 'px';
+				if (img){
+					img.style.backgroundImage = utils.fmt('url({0})', src);
+				}
+				else{
+					img = utils.createEl(utils.fmt(tImg, {
+						imgCls: imgCls,
+						url: src,
+						width: previewEl.offsetWidth,
+						height: previewEl.offsetHeight
+					}));
 					previewEl.appendChild(img);
 				}
-				img.src = src;
 			}
 		}
 	};
@@ -340,4 +324,49 @@
 		onlegal: true,
 		onillegal: false
 	};
-}(window));
+}(window, {
+	trim: function(str){
+		return /^\s*(\S*)\s*$/.exec(str)[1];
+	},
+	preset: function(fn){
+		var presetArgs = [].slice.call(arguments, 1);
+		return function(){
+			fn.apply(null, presetArgs.concat([].slice.call(arguments)));
+		};
+	},
+	createEl:  function(html){
+		var f = this.elFactory = this.elFactory || document.createElement('div');
+		f.innerHTML = html;
+		return f.firstChild;
+	},elFactory: null,
+	extend: function(){
+		var ret = {};
+		for (var i = 0, len = arguments.length, arg; i < len; ++i){
+			if (arg = arguments[i]){
+				for (var p in arg){
+					if (!ret.hasOwnProperty(p)){
+						ret[p] = arg[p];
+					}
+				}
+			}
+		}
+		return ret;
+	},
+	fmt: function(str/*{DOMString}... args*/){
+		if (arguments.length < 2) return str;	
+
+		var args;
+		if ('[object Object]' === Object.prototype.toString.call(arguments[1])){
+			args = arguments[1];	
+		}
+		else{
+			args = [];
+			for (var i = 1, arg; arg = arguments[i++];){
+				args = args.concat(arg);
+			}
+		}
+		return str.replace(/\{([^}{}]+)\}/g, function(g0, g1){
+			return typeof args[g1] === 'undefined' ? g0 : args[g1];
+		});
+	}
+}));
